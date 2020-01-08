@@ -1,8 +1,7 @@
-def makeOptionList(text):
-    refseqList = text.split('\n')
+def makeOptionList(someList):
     options = ''
     template = '''
                 <option value="{}">{}</option>'''
-    for refseq in refseqList:
-        options += template.format(refseq, refseq)
+    for element in someList:
+        options += template.format(element, element)
     return options

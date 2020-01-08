@@ -4,6 +4,10 @@ from fileWork import (
     makeOptionList,
 )
 
+from cogCreator import (
+    getSequences,
+    getIsoforms
+)
 
 app = Bottle(__name__)
 
@@ -16,8 +20,22 @@ def reference():
     eMail = request.POST.get('eMail')
     analysis = request.files.analysis
     reanalysis = request.files.reanalysis
-    text = analysis.file.getvalue().decode()
-    return template('listbox', options=makeOptionList(text))
+
+    if reanalysis and eMail:
+        pass
+        return 'Work in progress'
+
+    elif analysis and eMail:
+        proteins = dict()
+        text = analysis.file.getvalue().decode()
+
+        proteins = getSequences(text, proteins)
+        proteins = getIsoforms(proteins)
+        species = set([p.species for p in proteins.values()])
+        return template('listbox', options=makeOptionList(species))
+
+    else:
+        return 'Provide your e-mail and one of the files below'
 
 @app.get("/calculate")
 def calculate():
