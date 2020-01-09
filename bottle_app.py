@@ -1,12 +1,16 @@
 from bottle import Bottle, request, template
 
 from fileWork import (
-    makeOptionList,
+    pickleFile,
+    unpickleFile,
+    makeOptionList
 )
 
 from cogCreator import (
     getSequences,
-    getIsoforms
+    getIsoforms,
+    countGenes,
+    blastAndCalc
 )
 
 app = Bottle(__name__)
@@ -31,21 +35,31 @@ def reference():
 
         proteins = getSequences(text, proteins)
         proteins = getIsoforms(proteins)
-        species = set([p.species for p in proteins.values()])
-        return template('listbox', options=makeOptionList(species))
+        genesDict = countGenes(proteins)
+
+
+        data = {
+            'eMail': eMail,
+            'proteins': pickleFile(proteins),
+            'options': makeOptionList(genesDict)
+        }
+
+        return template('listbox', **data)
 
     else:
         return 'Provide your e-mail and one of the files below'
 
-@app.get("/calculate")
+@app.post("/calculate")
 def calculate():
-    ref = request.query.get('hidden')
+    referencial = (request.forms.get('referencial')).split(';')
+    eMail = request.forms.get('eMail')
+    proteins = unpickleFile(request.forms.get('proteins'))
+    blastDict = None
 
-    if not ref:
-        return "Empty params"
+    result = blastAndCalc(referencial, eMail, proteins, blastDict)
 
     data = {
-        'ref': ref
+        'result': result
     }
 
     return template('result', **data)

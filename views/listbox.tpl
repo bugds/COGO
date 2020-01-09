@@ -38,7 +38,7 @@
             }
 		</script>
 
-		<title>Listbox JavaScript functions</title>
+		<title>Choosing referencial species</title>
 	</head>
 
 	<body>
@@ -51,14 +51,16 @@
 			</td>
 			<td align="center" valign="middle">
 				<br/>
-				<p id='toLeft' onclick="listbox_moveacross('notGood', 'good')">&gt;&gt;</p>
+				<input type="button" value="--&gt;" onclick="listbox_moveacross('notGood', 'good')">
 				<br/>
-				<p id='toRight' onclick="listbox_moveacross('good', 'notGood')">&lt;&lt;</p>
+				<input type="button" value="&lt;--" onclick="listbox_moveacross('good', 'notGood')">
 			</td>
 			<td>
 				<p>Referencial countries</p>
-				<form action="/calculate" method="get" onsubmit="placeInHidden(';', 'good', 'hidden');">
-				    <input type="hidden" name="hidden" id="hidden">
+				<form action="/calculate" method="post" onsubmit="placeInHidden(';', 'good', 'referencial');">
+				    <input type="hidden" name="referencial" id="referencial">
+				    <input type="hidden" name="eMail" value="{{eMail}}">
+		            <input type="hidden" name="proteins" value="{{proteins}}">
 					<select id="good" style="width: 200px;" size="20" multiple>
 					</select>
 					<input type="submit" value="Submit">

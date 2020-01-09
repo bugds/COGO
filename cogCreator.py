@@ -3,20 +3,13 @@
 # Mismatches may cause errors
 
 import sys
-import os
-import pickle
 from io import StringIO
 from Bio import SearchIO, Entrez
 from Bio.Blast import NCBIWWW
 
 rootFolder = sys.path[0]
-# 'rootFoler' is a directory that contains:
-# /Input        (pairs of input files (good, all) for each protein)
-# /Blast_XML    (search results in xml format)
-# /Results      (for output)
 
 hitlist_size = 300
-email = 'bug.dmitrij@gmail.com'
 
 class ProteinClass():
     '''Class for proteins
@@ -33,51 +26,6 @@ class ProteinClass():
         self.refseq = refseq
         self.good = good
 
-def checkPreviousPickle(filename, folder):
-    '''Takes previously pickled objects or returns "False"
-    :param filename: Name of analyzed file
-    :param folder: Folder in which pickled objects are contained
-    :return: Object or "False" if it does not exist
-    '''
-    for prevName in os.listdir(rootFolder + folder):
-        if filename in prevName:
-            path = rootFolder + folder + '/' + prevName
-            with open(path, 'rb') as f:
-                return pickle.load(f)
-    return False
-
-def savePickle(shortName, toSave, folder):
-    '''Saves variables into a pickle file
-    :param shortName: Part of the analyzed file name
-    :param toSave: Object to save
-    :param folder: Folder in which pickled objects are contained
-    '''
-    path = rootFolder + folder + '/' + shortName + '.pkl'
-    with open(path, 'wb') as f:
-        pickle.dump(toSave, f)
-
-def updateSequences(seqFilename, proteins, good=True):
-    '''If "proteins" dictionary was saved earlier, reassigns "good" attributes
-    of "proteins" according to new "good" and "not good" distribution
-
-    :param seqFilename: Name of a file with accession numbers
-    :param proteins: Dictionary for storing information about proteins
-    :param good: Boolean, if referencial protein - True
-    :return: Updated dictionary
-    '''
-    path = rootFolder + '/Input/' + seqFilename
-    seqFile = open(path, 'r')
-    line = seqFile.readline().replace('\n', '')
-    while line:
-        if line in proteins:
-            proteins[line].good = good
-        else:
-            print(line + ' was not in previous run')
-        line = seqFile.readline().replace('\n', '')
-    seqFile.close()
-    proteins = goodGeneMakesGoodProtein(proteins)
-    return proteins
-
 def getSequences(text, proteins, good=False):
     '''Gets accession numbers from text
     :param text: Text with accession numbers
@@ -85,8 +33,7 @@ def getSequences(text, proteins, good=False):
     :param good: Boolean, True for referencial proteins
     :return: Dictionary supplemented with proteins information
     '''
-    for line in text.split('\n'):
-        line = line.replace('\n', '')
+    for line in text.split('\r\n'):
         if not line in proteins:
             proteins[line] = ProteinClass(None, None, line, good)
     return proteins
@@ -103,16 +50,18 @@ def getIsoforms(proteins):
         id=','.join(proteins.keys())
     ))
     genes = [i['Id'] for i in record[0]['LinkSetDb'][0]['Link']]
+
     # Safe efetch usage is less than 20 uids at a time (???)
     # IDK why, but if more it sends "An error has occured"
+
     for i in range(0, 1 + (len(genes) // 20)):
         if i*20 > len(genes):
             efetchAndParse(genes[i*20:], proteins)
         else:
             efetchAndParse(genes[i*20:(i+1)*20], proteins)
 
-    #proteins = checkProteins(proteins)
-    #proteins = goodGeneMakesGoodProtein(proteins)
+    proteins = checkProteins(proteins)
+
     return proteins
 
 def efetchAndParse(genesPart, proteins):
@@ -170,7 +119,9 @@ def checkProteins(proteins):
     '''
 
     toDel = set()
+
     for old in proteins.values():
+
         if old.species == None:
             record = Entrez.read(Entrez.efetch(
                 db="protein",
@@ -178,45 +129,41 @@ def checkProteins(proteins):
                 retmode='xml',
                 id=old.refseq
             ))
+
             tempor = [r['GBFeature_quals'] for r in record[0]['GBSeq_feature-table'] \
                 if r['GBFeature_key'] == 'CDS']
-            tempor = [r['GBQualifier_value'] for r in next(iter(tempor)) \
+            tempor2 = [r['GBQualifier_value'] for r in next(iter(tempor)) \
                 if r['GBQualifier_name'] == 'db_xref']
-            gene = tempor[0].split(':')[1]
-            print('Deprecated proteins: {}'.format(old.refseq))
+            gene = tempor2[0].split(':')[1]
+
             for new in proteins.values():
                 if new.gene == gene:
-                    new.good = old.good
                     toDel.add(old.refseq)
+
     for old in toDel:
         del proteins[old]
+
     return proteins
 
-def goodGeneMakesGoodProtein(proteins):
-    '''If there are referencial isoforms of some gene,
-    all isoforms of this gene must be seen as referencial
-    :param goodGenes: List of genes coding referencial isoforms
-    :param proteins: Dictionary for storing information about proteins
-    :return: "proteins" with all referencial proteins marked
-    '''
-    goodGenes = [p.gene for p in proteins.values() if p.good]
-    for protein in proteins.values():
-        if protein.gene in goodGenes:
-            protein.good = True
+
+def countGenes(proteins):
+    genesDict = dict()
+
+    for p in proteins.values():
+        genesDict[p.gene] = p.species
+
+    speciesList = list(genesDict.values())
+
+    return {i:speciesList.count(i) for i in speciesList}
+
+def makeGoodProteins(goodSpecies, proteins):
+    for p in proteins.values():
+        if p.species in goodSpecies:
+            p.good = True
+
     return proteins
 
-def checkPreviousBlast(filename):
-    '''Check if there was a previous BLAST with the same name
-    :param filename: XML-file containing BLAST information
-    :return: False if file was not found or xml contents of a found file
-    '''
-    for xmlName in os.listdir(rootFolder + '/Blast_XML'):
-        if filename in xmlName:
-            xmlPath = rootFolder + '/Blast_XML/' + xmlName
-            return SearchIO.parse(xmlPath, 'blast-xml')
-    return False
-
-def blastSearch(query, species, filename):
+def blastSearch(query, species):
     '''Run BLAST, save results of a search to a file and return its contents
     :param query: String with accession numbers divided by paragraphs
     :param species: String with all species, against which BLAST is performed
@@ -229,14 +176,7 @@ def blastSearch(query, species, filename):
         entrez_query = species,
         hitlist_size = hitlist_size
     )
-    xmlPath = rootFolder \
-        + '/Blast_XML/' \
-        + os.path.splitext(filename)[0] \
-        + '.xml'
-    xml = open(xmlPath, 'w')
-    xml.write(records.getvalue())
-    xml.close()
-    return SearchIO.parse(xmlPath, 'blast-xml')
+    return SearchIO.parse(records.getvalue(), 'blast-xml')
 
 def createBlastDict(blast, blastDict):
     '''Create dictionary containing BLAST results
@@ -255,7 +195,7 @@ def createBlastDict(blast, blastDict):
                         blastDict[record.id][species] = substrings[i+1]
     return blastDict
 
-def checkBlastDict(filename, blastDict, proteins, iteration, previous={'queries':set(),
+def checkBlastDict(blastDict, proteins, iteration, previous={'queries':set(),
     'species':set()}):
     '''Checks if BLAST found all species in each case
     :param filename: Name of currently explored file
@@ -273,27 +213,18 @@ def checkBlastDict(filename, blastDict, proteins, iteration, previous={'queries'
             speciesForBlast = speciesForBlast | lostSpecies
             queriesForBlast.add(record)
     if bool(queriesForBlast):
-        newBlast = checkPreviousBlast('{}_iter{}'.format(
-            os.path.splitext(filename)[0],
-            str(iteration) + '.xml'
-        ))
-        if not newBlast:
-            if (previous['queries'] == queriesForBlast) and \
-               (previous['species'] == speciesForBlast):
-                for s in speciesForBlast:
-                    for q in queriesForBlast:
-                        blastDict[q][s] = 'NA'
-            else:
-                newBlast = blastSearch(
-                    '\n'.join(queriesForBlast),
-                    ' OR '.join(speciesForBlast),
-                    '{}_iter{}'.format(
-                        os.path.splitext(filename)[0],
-                        str(iteration) + '.nomatter'
-                    )
-                )
+        if (previous['queries'] == queriesForBlast) and \
+           (previous['species'] == speciesForBlast):
+            for s in speciesForBlast:
+                for q in queriesForBlast:
+                    blastDict[q][s] = 'NA'
+        else:
+            newBlast = blastSearch(
+                '\n'.join(queriesForBlast),
+                ' OR '.join(speciesForBlast)
+            )
         blastDict = createBlastDict(newBlast, blastDict)
-        return checkBlastDict(filename, blastDict, proteins, iteration + 1,
+        return checkBlastDict(blastDict, proteins, iteration + 1,
         {'queries':queriesForBlast, 'species':speciesForBlast})
     return blastDict
 
@@ -405,9 +336,17 @@ def writeHtml(
     :return: HTML-string of BLAST analysis for single species
     '''
     htmlPart = StringIO()
-    htmlString = open(rootFolder + '/htmlStrings.txt', 'r').read()\
-        .split('\n')
-    htmlString = [line.replace(r'\n', '\n').replace(r'\t', '\t') for line in htmlString]
+    htmlString = list()
+    htmlString[0] = '<details>\n\t<summary>{}</summary>\n'
+    htmlString[1] = '\t<details>\n\t\t<summary>&emsp;Gene id: {}</summary>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{} of {} referencial proteins failed forward BLAST:</summary>\n'
+    htmlString[2] = '\t\t\t\t&emsp;&emsp;&emsp;&emsp;{} [{}]<br>\n'
+    htmlString[3] = '\t\t</details>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{} of {} isoforms failed to find all referencial proteins in first hit:</summary>\n'
+    htmlString[4] = '\t\t\t<details>\n\t\t\t\t<summary>&emsp;&emsp;&emsp;{}: {} of {} referencial species\' proteins don\'t match :</summary>\n'
+    htmlString[5] = '\t\t\t\t\t&emsp;&emsp;&emsp;&emsp;&emsp;{}<br>\n'
+    htmlString[6] = '\t\t\t</details>\n'
+    htmlString[7] = '\t\t</details>\n\t</details>\n'
+    htmlString[8] = '</details>'
+    # htmlString = [line.replace(r'\n', '\n').replace(r'\t', '\t') for line in htmlString]
 
     htmlPart.write(htmlString[0].format(qSpecies))
     for qGene in qGenes:
@@ -441,38 +380,22 @@ def writeHtml(
     htmlPart.write(htmlString[8])
     return htmlPart.getvalue()
 
-def main():
-    Entrez.email = email
-    for goodFilename in os.listdir(rootFolder + '/Input'):
-        if '_good' in goodFilename:
-            filename = goodFilename.replace('_good', '')
-            shortName = os.path.splitext(filename)[0]
-            proteins = checkPreviousPickle(shortName, '/Previous_Proteins')
-            if not proteins:
-                proteins = dict()
-                proteins = getSequences(goodFilename, proteins)
-                proteins = getSequences(filename, proteins, False)
-                proteins = getIsoforms(proteins)
-                savePickle(shortName, proteins, '/Previous_Proteins')
-            else:
-                proteins = updateSequences(filename, proteins, False) # All seqs first
-                proteins = updateSequences(goodFilename, proteins)    # Then only good
-                                                                # (prevents rewriting)
-            blastDict = checkPreviousPickle(shortName, '/Previous_blastDict')
-            if not blastDict:
-                blast = checkPreviousBlast(shortName)
-                if not blast:
-                    blast = blastSearch(
-                        '\n'.join([p.refseq for p in proteins.values()]),
-                        ' OR '.join([p.species for p in proteins.values()]),
-                        filename
-                    )
-                blastDict = createBlastDict(blast, dict())
-                blastDict = checkBlastDict(filename, blastDict, proteins, 0)
-                savePickle(shortName, blastDict, '/Previous_blastDict')
-            print(shortName)
-            checkGood(blastDict, proteins)
-            htmlFull = analyzeBlastDict(blastDict, proteins)
-            output = open(rootFolder + '/Results/' + shortName + '.html', 'w')
-            output.write(htmlFull)
-            output.close()
+def blastAndCalc(referencial, eMail, proteins, blastDict):
+    Entrez.email = eMail
+
+    if not referencial:
+        return "Choose at least one referencial species!"
+
+    proteins = makeGoodProteins(referencial, proteins)
+    if not blastDict:
+        blast = blastSearch(
+            '\n'.join([p.refseq for p in proteins.values()]),
+            ' OR '.join([p.species for p in proteins.values()])
+        )
+        blastDict = createBlastDict(blast, dict())
+        blastDict = checkBlastDict(blastDict, proteins, 0)
+    checkGood(blastDict, proteins)
+    return analyzeBlastDict(blastDict, proteins)
+
+
+

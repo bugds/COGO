@@ -5,8 +5,6 @@
     <title>Results</title>
 </head>
 <body>
-    <h1>{{ref}}</h1>
-    <p>Heyhey people;</p>
-    <p>Hey hey people</p>
+    <p>{{!result}}</p>
 </body>
 </html>
