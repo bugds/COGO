@@ -5,7 +5,7 @@
 <title>Input form</title>
 </head>
 <body>
-    <form action="/reference" method="post" enctype="multipart/form-data">
+    <form action="/listbox" method="post" enctype="multipart/form-data">
         <p>Enter your e-mail:<input type="text" method="get" name="eMail"></p>
         <div>
             <label for="analysis">Choose file to submit...</label>

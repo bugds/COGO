@@ -45,7 +45,7 @@
 		<table>
 		<tr valign="top">
 			<td>
-				<p>Non-referencial countries</p>
+				<p>Non-referencial species</p>
 				<select id="notGood" style="width: 200px;" size="20" multiple>{{!options}}
 				</select>
 			</td>
@@ -56,11 +56,12 @@
 				<input type="button" value="&lt;--" onclick="listbox_moveacross('good', 'notGood')">
 			</td>
 			<td>
-				<p>Referencial countries</p>
-				<form action="/calculate" method="post" onsubmit="placeInHidden(';', 'good', 'referencial');">
+				<p>Referencial species</p>
+				<form action="/reference" method="post" onsubmit="placeInHidden(';', 'good', 'referencial');" target="_blank">
 				    <input type="hidden" name="referencial" id="referencial">
 				    <input type="hidden" name="eMail" value="{{eMail}}">
 		            <input type="hidden" name="proteins" value="{{proteins}}">
+		            <input type="hidden" name="blastDict" value="{{blastDict}}">
 					<select id="good" style="width: 200px;" size="20" multiple>
 					</select>
 					<input type="submit" value="Submit">

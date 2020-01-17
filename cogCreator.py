@@ -33,8 +33,13 @@ def getSequences(text, proteins, good=False):
     :param good: Boolean, True for referencial proteins
     :return: Dictionary supplemented with proteins information
     '''
-    for line in text.split('\r\n'):
-        if not line in proteins:
+    if '\r\n' in text:
+        splitter = '\r\n'
+    else:
+        splitter = '\n'
+
+    for line in text.split(splitter):
+        if (not line in proteins) and ('_' in line):
             proteins[line] = ProteinClass(None, None, line, good)
     return proteins
 
@@ -123,6 +128,7 @@ def checkProteins(proteins):
     for old in proteins.values():
 
         if old.species == None:
+            print(old.refseq)
             record = Entrez.read(Entrez.efetch(
                 db="protein",
                 rettype='gp',
@@ -138,6 +144,7 @@ def checkProteins(proteins):
 
             for new in proteins.values():
                 if new.gene == gene:
+                    print(old.refseq)
                     toDel.add(old.refseq)
 
     for old in toDel:
@@ -155,6 +162,35 @@ def countGenes(proteins):
     speciesList = list(genesDict.values())
 
     return {i:speciesList.count(i) for i in speciesList}
+
+def getRefGenes(referencial, proteins):
+    speciesGenes = dict()
+
+    for goodSpecies in referencial:
+        speciesGenes[goodSpecies] = dict()
+        genesSet = set(
+            [p.gene for p in proteins.values() if p.species == goodSpecies]
+        )
+        for gene in genesSet:
+            record = Entrez.efetch(
+                db="gene",
+                rettype='gene_table',
+                retmode='text',
+                id=gene
+            )
+
+            line = record.readline()
+
+            speciesGenes[goodSpecies][gene] = line
+
+    return speciesGenes
+
+def removeNotRef(refDict, proteins):
+    for p in proteins.values():
+        if (p.species in refDict.keys()) and (p.gene != refDict[p.species]):
+            proteins.pop(p.refseq)
+
+    return proteins
 
 def makeGoodProteins(goodSpecies, proteins):
     for p in proteins.values():
