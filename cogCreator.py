@@ -152,6 +152,10 @@ def checkProteins(proteins):
 
     return proteins
 
+def unifyProteins(proteins):
+    for p in proteins.values():
+        p.good = False
+    return proteins
 
 def countGenes(proteins):
     genesDict = dict()
@@ -186,9 +190,16 @@ def getRefGenes(referencial, proteins):
     return speciesGenes
 
 def removeNotRef(refDict, proteins):
+    toDel = set()
+
     for p in proteins.values():
         if (p.species in refDict.keys()) and (p.gene != refDict[p.species]):
-            proteins.pop(p.refseq)
+            toDel.add(p.refseq)
+
+    for refseq in toDel:
+        proteins.pop(refseq)
+
+    return proteins
 
     return proteins
 
@@ -373,15 +384,15 @@ def writeHtml(
     '''
     htmlPart = StringIO()
     htmlString = list()
-    htmlString[0] = '<details>\n\t<summary>{}</summary>\n'
-    htmlString[1] = '\t<details>\n\t\t<summary>&emsp;Gene id: {}</summary>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{} of {} referencial proteins failed forward BLAST:</summary>\n'
-    htmlString[2] = '\t\t\t\t&emsp;&emsp;&emsp;&emsp;{} [{}]<br>\n'
-    htmlString[3] = '\t\t</details>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{} of {} isoforms failed to find all referencial proteins in first hit:</summary>\n'
-    htmlString[4] = '\t\t\t<details>\n\t\t\t\t<summary>&emsp;&emsp;&emsp;{}: {} of {} referencial species\' proteins don\'t match :</summary>\n'
-    htmlString[5] = '\t\t\t\t\t&emsp;&emsp;&emsp;&emsp;&emsp;{}<br>\n'
-    htmlString[6] = '\t\t\t</details>\n'
-    htmlString[7] = '\t\t</details>\n\t</details>\n'
-    htmlString[8] = '</details>'
+    htmlString.append('<details>\n\t<summary>{}</summary>\n')
+    htmlString.append('\t<details>\n\t\t<summary>&emsp;Gene id: {}</summary>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{} of {} referencial proteins failed forward BLAST:</summary>\n')
+    htmlString.append('\t\t\t\t&emsp;&emsp;&emsp;&emsp;{} [{}]<br>\n')
+    htmlString.append('\t\t</details>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{} of {} isoforms failed to find all referencial proteins in first hit:</summary>\n')
+    htmlString.append('\t\t\t<details>\n\t\t\t\t<summary>&emsp;&emsp;&emsp;{}: {} of {} referencial species\' proteins don\'t match :</summary>\n')
+    htmlString.append('\t\t\t\t\t&emsp;&emsp;&emsp;&emsp;&emsp;{}<br>\n')
+    htmlString.append('\t\t\t</details>\n')
+    htmlString.append('\t\t</details>\n\t</details>\n')
+    htmlString.append('</details>')
     # htmlString = [line.replace(r'\n', '\n').replace(r'\t', '\t') for line in htmlString]
 
     htmlPart.write(htmlString[0].format(qSpecies))

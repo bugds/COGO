@@ -1,4 +1,4 @@
-from bottle import Bottle, request, template
+from bottle import Bottle, request, template, BaseRequest
 import pickle
 
 class ProteinClass():
@@ -27,12 +27,15 @@ from cogCreator import (
     getSequences,
     getIsoforms,
     countGenes,
+    unifyProteins,
     getRefGenes,
     removeNotRef,
     blastAndCalc
 )
 
 app = Bottle(__name__)
+
+BaseRequest.MEMFILE_MAX = 1024*1024
 
 @app.get("/")
 def index():
@@ -80,7 +83,7 @@ def listbox():
 def reference():
     referencial = (request.forms.get('referencial')).split(';')
     eMail = request.forms.get('eMail')
-    proteins = unpickleFile(request.forms.get('proteins'))
+    proteins = unifyProteins(unpickleFile(request.forms.get('proteins')))
     blastDict = request.forms.get('blastDict')
 
     speciesGenes = getRefGenes(referencial, proteins)
