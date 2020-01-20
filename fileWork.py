@@ -1,13 +1,13 @@
 import pickle
 import codecs
 
-def pickleFile(obj):
-    pickled = codecs.encode(pickle.dumps(obj), 'base64').decode()
+def pickleFile(file):
+    pickled = codecs.encode(pickle.dumps(file), 'base64').decode()
 
     return pickled
 
-def unpickleFile(obj):
-    unpickled = pickle.loads(codecs.decode(obj.encode(), 'base64'))
+def unpickleFile(file):
+    unpickled = pickle.loads(codecs.decode(file.encode(), 'base64'))
 
     return unpickled
 

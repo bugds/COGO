@@ -1,4 +1,20 @@
 from bottle import Bottle, request, template
+import pickle
+
+class ProteinClass():
+    '''Class for proteins
+    '''
+    def __init__(self, species, gene, refseq, good):
+        '''Initialization
+        :param species: Species in which proteins are synthetized
+        :param gene: Coding gene
+        :param refseq: Reference sequence accession number
+        :param good: Boolean, if referencial protein - True
+        '''
+        self.species = species
+        self.gene = gene
+        self.refseq = refseq
+        self.good = good
 
 from fileWork import (
     pickleFile,
@@ -29,7 +45,7 @@ def listbox():
     reanalysis = request.files.reanalysis
 
     if reanalysis and eMail:
-        inputData = reanalysis.getvalue().decode()
+        inputData = pickle.load(reanalysis.file)
         genesDict = countGenes(inputData['proteins'])
 
         data = {
