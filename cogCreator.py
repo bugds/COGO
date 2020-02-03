@@ -385,10 +385,12 @@ def writeHtml(
     htmlPart = StringIO()
     htmlString = list()
     htmlString.append('<details>\n\t<summary>{}</summary>\n')
-    htmlString.append('\t<details>\n\t\t<summary>&emsp;Gene id: {}</summary>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{} of {} referencial proteins failed forward BLAST:</summary>\n')
+#    htmlString.append('\t<details>\n\t\t<summary>&emsp;Gene id: {}</summary>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{} of {} referencial proteins failed forward BLAST:</summary>\n')
+    htmlString.append('\t<details>\n\t\t<summary>&emsp;Gene id: {}</summary>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{}/{} referencial -> this gene. Fails:</summary>\n')
     htmlString.append('\t\t\t\t&emsp;&emsp;&emsp;&emsp;{} [{}]<br>\n')
-    htmlString.append('\t\t</details>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{} of {} isoforms failed to find all referencial proteins in first hit:</summary>\n')
-    htmlString.append('\t\t\t<details>\n\t\t\t\t<summary>&emsp;&emsp;&emsp;{}: {} of {} referencial species\' proteins don\'t match :</summary>\n')
+#    htmlString.append('\t\t</details>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{} of {} isoforms failed to find all referencial proteins in first hit:</summary>\n')
+    htmlString.append('\t\t</details>\n\t\t<details>\n\t\t\t<summary>&emsp;&emsp;{}/{} isoforms of this gene -> all referencial isoforms. Fails:</summary>\n')
+    htmlString.append('\t\t\t<details>\n\t\t\t\t<summary>&emsp;&emsp;&emsp;{} -> {}/{} referencial isoforms. Fails:</summary>\n')
     htmlString.append('\t\t\t\t\t&emsp;&emsp;&emsp;&emsp;&emsp;{}<br>\n')
     htmlString.append('\t\t\t</details>\n')
     htmlString.append('\t\t</details>\n\t</details>\n')
@@ -399,7 +401,8 @@ def writeHtml(
     for qGene in qGenes:
         htmlPart.write(htmlString[1].format(
         qGene,
-        str(len(gRefseqs) - len(qForward[qGene])),
+#        str(len(gRefseqs) - len(qForward[qGene])),
+        len(qForward[qGene]),
         len(gRefseqs)
         ))
         for fail in (gRefseqs - qForward[qGene]):
@@ -408,14 +411,16 @@ def writeHtml(
                 proteins[fail].species
             ))
         htmlPart.write(htmlString[3].format(
-            str(len(qReverse[qGene]) \
-                - len([qR for qR in qReverse[qGene].values() if qR])),
+#            str(len(qReverse[qGene]) \
+#                - len([qR for qR in qReverse[qGene].values() if qR])),
+            len([qR for qR in qReverse[qGene].values() if qR]),
             len(qReverse[qGene])
         ))
         for isoform, success in qReverse[qGene].items():
             htmlPart.write(htmlString[4].format(
                 isoform,
-                str(len(gSpecies) - len(success)),
+#                str(len(gSpecies) - len(success)),
+                len(success),
                 len(gSpecies)
             ))
             for fail in (gSpecies - success):

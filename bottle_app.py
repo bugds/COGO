@@ -1,21 +1,6 @@
 from bottle import Bottle, request, template, BaseRequest
 import pickle
 
-class ProteinClass():
-    '''Class for proteins
-    '''
-    def __init__(self, species, gene, refseq, good):
-        '''Initialization
-        :param species: Species in which proteins are synthetized
-        :param gene: Coding gene
-        :param refseq: Reference sequence accession number
-        :param good: Boolean, if referencial protein - True
-        '''
-        self.species = species
-        self.gene = gene
-        self.refseq = refseq
-        self.good = good
-
 from fileWork import (
     pickleFile,
     unpickleFile,
@@ -24,6 +9,7 @@ from fileWork import (
 )
 
 from cogCreator import (
+    ProteinClass,
     getSequences,
     getIsoforms,
     countGenes,
